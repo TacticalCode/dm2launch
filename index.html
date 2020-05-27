@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<title>DM-2 Launch Timeline</title>
+	<style>
+#timeline td {
+	padding: 1em;
+	border-bottom: 1px solid #cccccc;
+}
+	</style>
+</head>
+<body>
+	<h1>Launch America!</h1>
+	<form name="time-adjust" style="right:1em;top:1em;">
+	<table style="max-width:25em; float: right; background-color: #ffff93;">
+	<tr><th colspan="2"><b>Countdown Sync:</b> Enter the "T minus" time you'd like to synchronize to, then press "Sync NOW!" when it appears in the stream you're watching.</th></tr>
+	<tr><td>Last sync:</td>
+	<td>	<input id="last-sync-time" type="text" disabled="disabled" value="NEVER (please sync me!)" style="width:90%"/></td>
+	</tr>
+	<tr><td>Sync T</td>
+	<td>
+		<select id="sync-reference-plusminus"><option value="-1" default="true">T minus</option><option value="1">T plus</option></select>
+		<input style="width:2em" id="sync-reference-hour" type="text" placeholder="HH"/> :
+		<input style="width:2em" id="sync-reference-min" type="text" placeholder="MM"/> :
+		<input style="width:2em" id="sync-reference-sec" type="text" placeholder="SS"/>
+	</td>
+	</tr>
+	<tr><td></td>
+	<td>	<input id="trigger-sync" type="button" onclick="trigger_sync()" value="Sync NOW!" /></td>
+	</tr>
+	</table>
+	</form>
+
+	<p>Times shown here are in your local time. Please synchronize with the countdown on a stream you are watching for optimal results.</p>
+	<p>Disclamer: I've slapped this page together in a hurry, there will be some bugs :-)</p>
+	<form>
+		<input type="button" value="Enable Notifications" onclick="crude_notify_scheduler()" /><br>
+		<p>Note: Leave this page open in the background! Only enable notifications after the final time sync.</p>
+		<p>Your browser will aks permission to display notifications, if not check the icon left in your URL bar.</p>
+		<p>Notifications are generated offline and adjusted to your time synchronization.</p>
+	</form>
+
+	<br><br>
+	<h2>Launch Timeline</h2>
+	<p>To be added...</p>
+	<table><tbody id="timeline"></tbody></table>
+
+<script>
+function populate_timeline()
+{
+	var timeline_table=document.getElementById("timeline");
+	timeline_table.innerHTML="<tr><th>Local Time</th><th>T</th><th>Event</th></tr>";
+	timeline.forEach(function(obj){
+		var row = timeline_table.insertRow();
+		var cell_abstime = row.insertCell(0);
+		var cell_reltime = row.insertCell(1);
+		var cell_event = row.insertCell(2);
+		const abstime_text = document.createTextNode(dtf.format(
+			new Date( liftoff.getTime() + parseInt(obj["time"])*1000 + sync_offset*1000 )
+		));
+		var time = parseInt(obj["time"]);
+		const prefix = time>0 ? "+" : "-";
+		time = time * (time>0 ? 1 : -1);
+		const hrs = String(Math.floor(time/3600) + (time<0?1:0)).padStart(2,'0');
+		const mins = String(Math.floor((time-hrs*3600)/60)).padStart(2,'0');
+		const secs = String(Math.floor( (time-hrs*3600-mins*60) )).padStart(2,'0');
+		const reltime_text = document.createTextNode(
+			prefix + hrs +":"+ mins +":"+ secs
+		);
+		const event_text = document.createTextNode(obj["event"]);
+		cell_abstime.appendChild(abstime_text);
+		cell_reltime.appendChild(reltime_text);
+		cell_event.appendChild(event_text);
+	});
+}
+
+function trigger_sync(){
+	const sync_hour=parseInt(sync_ref_hour.value);
+	const sync_min=parseInt(sync_ref_min.value);
+	const sync_sec=parseInt(sync_ref_sec.value);
+	const sync_plusminus=parseInt(sync_ref_plusminus.selectedOptions[0].value);
+	const sync_ref_offset=sync_plusminus*(sync_hour*3600+sync_min*60+sync_sec)*1000;
+	sync_ref=new Date(liftoff.getTime()+sync_ref_offset);
+	const now = new Date();
+	sync_offset = Math.round((now.getTime()-sync_ref.getTime())/1000);
+	last_sync_time.value=now;
+	console.log(`Sync Offset: ${sync_offset} sec`);
+	populate_timeline();
+}
+
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function crude_notify_scheduler()
+{
+ 	if (!("Notification" in window)) {
+		alert("This browser does not support desktop notification");
+	}
+
+	if ( Notification.permission === "denied"){ return; }
+	else if ( Notification.permission !== "granted" ){ Notification.requestPermission(); }
+
+	if (Notification.permission !== "granted" && Notification.permission !== "default" ) return;
+
+
+	var last_sync = sync_ref;
+	var next_evt = 0;
+	timeline.forEach(async function(obj){
+		evt_time = liftoff.getTime() + sync_offset*1000 + parseInt(obj["time"])*1000;
+		now_time = new Date().getTime();
+		const delta = evt_time - now_time;
+		if( delta > 0 ) {
+			await(sleep( delta ));
+			if(sync_ref !== last_sync) return;
+			var notify = new Notification(String(obj["event"]));
+		}
+	});
+}
+
+const liftoff=new Date('Wed May 27 2020 20:33:00 UTC');
+var sync_ref=new Date();
+var sync_offset=0;
+var last_sync_time=document.getElementById("last-sync-time");
+var sync_ref_hour=document.getElementById("sync-reference-hour");
+var sync_ref_min=document.getElementById("sync-reference-min");
+var sync_ref_sec=document.getElementById("sync-reference-sec");
+var sync_ref_plusminus=document.getElementById("sync-reference-plusminus");
+const TZ_offset = new Date().getTimezoneOffset() * 60 * 1000;
+const dtf_options = {
+  year: 'numeric', month: 'numeric', day: 'numeric',
+  hour: 'numeric', minute: 'numeric', second: 'numeric',
+  hour12: false,
+};
+const dtf = new Intl.DateTimeFormat('default', dtf_options);
+
+
+const timeline = [
+{"time":"-17999","event":"The Dragon Capsule aligns its inertial measurement units and is configured for launch"},
+{"time":"-16200","event":"Dragon Capsule Fuel Pressurization"},
+{"time":"-15300","event":"The Crew hears a weather briefing before they suit up"},
+{"time":"-14700","event":"Douglas Hurley & Robert Behnken officially handed off from NASA to SpaceX"},
+{"time":"-14400","event":"The Crew suits up at KSC’s Neil Armstrong Operations and Checkout Building"},
+{"time":"-12120","event":"Crew Walk-Out"},
+{"time":"-11700","event":"The crew departs the Ops and checkout building to Launch Complex 39A"},
+{"time":"-10500","event":"Bob & Doug arrive at the pad."},
+{"time":"-9600","event":"Bob & Doug take the ultimate walk across the Crew Access Arm"},
+{"time":"-9300","event":"The crew enters the Dragon"},
+{"time":"-8400","event":"Communications check between the crew and the ground"},
+{"time":"-8100","event":"The seats rotate up putting the crew into flight position"},
+{"time":"-8040","event":"Crew checks their suits for leaks again and verify they are GO"},
+{"time":"-6900","event":"Dragon‘s hatch is closed up and the ground support crew leaves the pad"},
+{"time":"-4200","event":"The exact state and location of the ISS is uploaded to the Dragon Capsule"},
+{"time":"-2700","event":"SpaceX Launch Director verifies go for propellant load"},
+{"time":"-2520","event":"Crew access arm retracts"},
+{"time":"-2220","event":"Dragon’s launch escape system is armed"},
+{"time":"-2100","event":"RP-1 (rocket grade kerosene) loading begins"},
+{"time":"-2100","event":"1st stage LOX (liquid oxygen) loading begins"},
+{"time":"-960","event":"2nd stage LOX loading begins"},
+{"time":"-420","event":"Falcon 9 begins engine chill prior to launch"},
+{"time":"-300","event":"Dragon transitions to internal power"},
+{"time":"-60","event":"Propellant tank pressurization to flight pressure & final prelaunch checks"},
+{"time":"-45","event":"SpaceX Launch Director verifies go for launch"},
+{"time":"-3","event":"Engine controller commands engine ignition sequence to start"},
+{"time":"0","event":"Falcon 9 liftoff"},
+{"time":"58","event":"Max Q (moment of peak mechanical stress on the rocket)"},
+{"time":"153","event":"1st stage main engine cutoff (MECO)"},
+{"time":"156","event":"1st and 2nd stages separate"},
+{"time":"164","event":"2nd stage engine starts"},
+{"time":"435","event":"1st stage entry burn"},
+{"time":"527","event":"2nd stage engine cutoff (SECO-1) "},
+{"time":"532","event":"1st stage landing burn"},
+{"time":"562","event":"1st stage landing "},
+{"time":"720","event":"Dragon separates from 2nd stage"},
+{"time":"766","event":"Dragon nosecone open sequence begins"},
+{"time":"2946","event":"Orbit Phase adjustment burn #1"},
+{"time":"5520","event":"Manual Flight Test"},
+{"time":"9120","event":"Astronaut Downlink Event"},
+{"time":"10620","event":"Press conference"},
+{"time":"35084","event":"Orbit Phase adjustment burn #2"},
+{"time":"40215","event":"Orbit Lift burn"},
+{"time":"42901","event":"Orbit circularization burn"},
+{"time":"53220","event":"Astronaut Downlink Event"},
+{"time":"63624","event":"Arrival at the ISS Keep-Out sphere"},
+{"time":"64224","event":"[400m] Entry into the ISS Keep-Out sphere at waypoint zero"},
+{"time":"65724","event":"[220m] Hold at Waypoint 1, Dragon aligns for docking"},
+{"time":"67884","event":"Final Go / No-Go Poll for docking"},
+{"time":"68184","event":"[20m] Hold at Waypoint 2"},
+{"time":"68484","event":"The Dragon capsule departs Waypoint 2 to proceed with docking"},
+{"time":"68784","event":"DRAGON DOCKED SUCCESSFULLY TO THE INTERNATIONAL SPACE STATION"},
+{"time":"76920","event":"Hatch Opening"},
+{"time":"78720","event":"Welcome Ceremony"}
+];
+
+populate_timeline(timeline, 0);
+</script>
+
+</body>
+</html>
