@@ -62,11 +62,12 @@ body {
 	<p>Disclamer: Unlike Dragon, this page is NOT well-tested... At least this makes you a test pilot, too :-)</p>
 	<br>
 	<h3>Notes</h3>
-	<p>During the 1st launch attempt, I've found that the SpaceX/NASA Stream hosts pointed out most major events about 1 minute before they happened.</p>
+	<p>During the 1st launch attempt, I've found that the SpaceX/NASA's Stream Hosts pointed out most major events about 1 minute before they happened.</p>
 	<p>If you want to stay ahead, synchronize the Countdown to 1-2 minutes into the future (03:59:00 sync time @ 04:00:00 in the real countdown).</p>
-	<p>For notifications, leave this page open in the background! Only enable notifications after a time sync.</p>
+	<p>For notifications, leave this page open in the background after you clicked "Enable Notifications"!</p>
 	<p>Your browser will ask for permission to display notifications, if not check the icon on the left in your URL bar.</p>
 	<p>Notifications are generated offline and adjusted to your time synchronization.</p>
+	<p>You can synchronize your Countdown after enabling notifications, reload this page to disable notifications.</p>
 	<br>
 	<center><h1 style="margin: 1em;">Liftoff Countdown</h1></center>
 	<div id="countdown">T 
@@ -129,7 +130,7 @@ function trigger_sync(){
 	clearInterval(countdown);
 	updateCountdown();
 	countdown = setInterval(updateCountdown, 1000);
-	if(enableNotifications===1){ crude_notify_scheduler(); };
+	if(enable_notifications===1){ crude_notify_scheduler(); };
 }
 
 function sleep(ms) {
