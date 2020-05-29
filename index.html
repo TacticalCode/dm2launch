@@ -127,6 +127,7 @@ function trigger_sync(){
 	console.log(`Sync Offset: ${sync_offset} sec`);
 	populate_timeline();
 	clearInterval(countdown);
+	updateCountdown();
 	countdown = setInterval(updateCountdown, 1000);
 }
 
@@ -160,11 +161,15 @@ function crude_notify_scheduler()
 const liftoff=new Date('Sat May 30 2020 19:22:45 UTC'); // https://en.wikipedia.org/wiki/Crew_Dragon_Demo-2
 var sync_ref=new Date();
 var sync_offset=0;
-var last_sync_time=document.getElementById("last-sync-time");
-var sync_ref_hour=document.getElementById("sync-reference-hour");
-var sync_ref_min=document.getElementById("sync-reference-min");
-var sync_ref_sec=document.getElementById("sync-reference-sec");
-var sync_ref_plusminus=document.getElementById("sync-reference-plusminus");
+const last_sync_time=document.getElementById("last-sync-time");
+const sync_ref_hour=document.getElementById("sync-reference-hour");
+const sync_ref_min=document.getElementById("sync-reference-min");
+const sync_ref_sec=document.getElementById("sync-reference-sec");
+const sync_ref_plusminus=document.getElementById("sync-reference-plusminus");
+const cd_plusmin = document.getElementById("cd-plusminus");
+const cd_hrs = document.getElementById("cd-hour");
+const cd_min = document.getElementById("cd-min");
+const cd_sec = document.getElementById("cd-sec");
 const TZ_offset = new Date().getTimezoneOffset() * 60 * 1000;
 const dtf_options = {
   year: 'numeric', month: 'numeric', day: 'numeric',
@@ -172,6 +177,7 @@ const dtf_options = {
   hour12: false,
 };
 const dtf = new Intl.DateTimeFormat('default', dtf_options);
+updateCountdown();
 var countdown = setInterval(updateCountdown, 1000);
 
 const timeline = [
