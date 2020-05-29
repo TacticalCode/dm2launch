@@ -129,6 +129,7 @@ function trigger_sync(){
 	clearInterval(countdown);
 	updateCountdown();
 	countdown = setInterval(updateCountdown, 1000);
+	if(enableNotifications===1){ crude_notify_scheduler(); };
 }
 
 function sleep(ms) {
@@ -138,14 +139,14 @@ function sleep(ms) {
 function crude_notify_scheduler()
 {
  	if (!("Notification" in window)){ alert("This browser does not support desktop notifications"); return;}
-
-	if ( Notification.permission === "denied"){ return; }
-	else if ( Notification.permission !== "granted" ){ Notification.requestPermission(); }
-
-	if ( Notification.permission !== "granted" && Notification.permission !== "default" ) return;
+	if ( Notification.permission !== "granted" ){ Notification.requestPermission(); }
+	if ( Notification.permission !== "granted" && Notification.permission !== "default" ){
+		alert("Notification permissions were denied. Please check your browser's settings (left in address bar) if you want to receive notifications.");
+		return;
+	}
 
 	var last_sync = sync_ref;
-	var next_evt = 0;
+	enable_notifications=1;
 	timeline.forEach(async function(obj){
 		evt_time = liftoff.getTime() + sync_offset*1000 + parseInt(obj["time"])*1000;
 		now_time = new Date().getTime();
@@ -161,6 +162,7 @@ function crude_notify_scheduler()
 const liftoff=new Date('Sat May 30 2020 19:22:45 UTC'); // https://en.wikipedia.org/wiki/Crew_Dragon_Demo-2
 var sync_ref=new Date();
 var sync_offset=0;
+var enable_notifications=0;
 const last_sync_time=document.getElementById("last-sync-time");
 const sync_ref_hour=document.getElementById("sync-reference-hour");
 const sync_ref_min=document.getElementById("sync-reference-min");
