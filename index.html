@@ -2,21 +2,44 @@
 <html>
 <head>
 	<meta charset="utf-8" />
-	<title>DM-2 Launch Timeline</title>
+	<title>DM-2 Launch Timeline #LaunchAmerica</title>
 	<style>
+body {
+	font-family: "Arial";
+}
+#trigger-sync {
+	font-weight: bold;
+}
+#timesync {
+	max-width:30em;
+	float: right;
+	background-color: #ffff93;
+	padding:1em;
+}
 #timeline td {
 	padding: 1em;
 	border-bottom: 1px solid #cccccc;
 }
+#countdown div {
+	display: inline-block;
+}
+#countdown {
+	font-size: 3em;
+	font-weight: bold;
+	padding: 1em;
+	width: max-content;
+	border: 0.1em dashed red;
+	margin: 0 auto;
+}
 	</style>
 </head>
 <body>
-	<h1>Launch America!</h1>
+	<h1>#LaunchAmerica</h1>
 	<form name="time-adjust" style="right:1em;top:1em;">
-	<table style="max-width:25em; float: right; background-color: #ffff93;">
+	<table id="timesync">
 	<tr><th colspan="2"><b>Countdown Sync:</b> Enter the "T minus" time you'd like to synchronize to, then press "Sync NOW!" when it appears in the stream you're watching.</th></tr>
 	<tr><td>Last sync:</td>
-	<td>	<input id="last-sync-time" type="text" disabled="disabled" value="NEVER (please sync me!)" style="width:90%"/></td>
+	<td><input id="last-sync-time" type="text" disabled="disabled" value="NEVER (please sync me!)" style="width:95%"/></td>
 	</tr>
 	<tr><td>Sync T</td>
 	<td>
@@ -27,66 +50,84 @@
 	</td>
 	</tr>
 	<tr><td></td>
-	<td>	<input id="trigger-sync" type="button" onclick="trigger_sync()" value="Sync NOW!" /></td>
+	<td>
+		<input id="trigger-sync" type="button" onclick="trigger_sync()" value="Sync NOW!" />
+		<input type="button" value="Enable Notifications" onclick="crude_notify_scheduler()" style="float: right;"/>
+	</td>
 	</tr>
 	</table>
 	</form>
 
 	<p>Times shown here are in your local time. Please synchronize with the countdown on a stream you are watching for optimal results.</p>
-	<p>Disclamer: I've slapped this page together in a hurry, there will be some bugs :-)</p>
-	<form>
-		<input type="button" value="Enable Notifications" onclick="crude_notify_scheduler()" /><br>
-		<p>Note: Leave this page open in the background! Only enable notifications after the final time sync.</p>
-		<p>Your browser will aks permission to display notifications, if not check the icon left in your URL bar.</p>
-		<p>Notifications are generated offline and adjusted to your time synchronization.</p>
-	</form>
-
-	<br><br>
+	<p>Disclamer: Unlike Dragon, this page is NOT well-tested... At least this makes you a test pilot, too :-)</p>
+	<br>
+	<h3>Notes</h3>
+	<p>During the 1st launch attempt, I've found that the SpaceX/NASA Stream hosts pointed out most major events about 1 minute before they happened.</p>
+	<p>If you want to stay ahead, synchronize the Countdown to 1-2 minutes into the future (03:59:00 sync time @ 04:00:00 in the real countdown).</p>
+	<p>For notifications, leave this page open in the background! Only enable notifications after a time sync.</p>
+	<p>Your browser will ask for permission to display notifications, if not check the icon on the left in your URL bar.</p>
+	<p>Notifications are generated offline and adjusted to your time synchronization.</p>
+	<br>
+	<center><h1 style="margin: 1em;">Liftoff Countdown</h1></center>
+	<div id="countdown">T 
+		<div id="cd-plusminus">-</div> 
+		<div id="cd-hour">13</div> : 
+		<div id="cd-min">37</div> : 
+		<div id="cd-sec">42</div>
+	</div>
+	<br>
 	<h2>Launch Timeline</h2>
-	<p>To be added...</p>
 	<table><tbody id="timeline"></tbody></table>
 
 <script>
+// return difference of date1 - date2 formatted as [ "<+|->", "HH[H..]", "MM", "SS" ] (w/ leading 0)
+function getRelTime(date1, date2) {
+	time1 = Math.round(date1.getTime()/1000);
+	time2 = Math.round(date2.getTime()/1000);
+	relTime = time1 - time2;
+	const prefix = relTime>0 ? "+" : "-";
+	relTime = relTime * (relTime>0 ? 1 : -1);
+	const hrs = String(Math.floor(relTime/3600)).padStart(2,'0');
+	const mins = String(Math.floor((relTime / 60) % 60)).padStart(2,'0');
+	const secs = String(Math.floor(relTime % 60)).padStart(2,'0');
+	return [ prefix, hrs, mins, secs ];
+}
+
 function populate_timeline()
 {
 	var timeline_table=document.getElementById("timeline");
 	timeline_table.innerHTML="<tr><th>Local Time</th><th>T</th><th>Event</th></tr>";
 	timeline.forEach(function(obj){
 		var row = timeline_table.insertRow();
-		var cell_abstime = row.insertCell(0);
-		var cell_reltime = row.insertCell(1);
-		var cell_event = row.insertCell(2);
-		const abstime_text = document.createTextNode(dtf.format(
-			new Date( liftoff.getTime() + parseInt(obj["time"])*1000 + sync_offset*1000 )
-		));
-		var time = parseInt(obj["time"]);
-		const prefix = time>0 ? "+" : "-";
-		time = time * (time>0 ? 1 : -1);
-		const hrs = String(Math.floor(time/3600) + (time<0?1:0)).padStart(2,'0');
-		const mins = String(Math.floor((time-hrs*3600)/60)).padStart(2,'0');
-		const secs = String(Math.floor( (time-hrs*3600-mins*60) )).padStart(2,'0');
-		const reltime_text = document.createTextNode(
-			prefix + hrs +":"+ mins +":"+ secs
-		);
-		const event_text = document.createTextNode(obj["event"]);
-		cell_abstime.appendChild(abstime_text);
-		cell_reltime.appendChild(reltime_text);
-		cell_event.appendChild(event_text);
+		const time = parseInt(obj["time"])*1000;
+		const reltime = getRelTime(new Date(liftoff.getTime() + time ), liftoff);
+		row.insertCell(0).appendChild(document.createTextNode(dtf.format(new Date( liftoff.getTime() + time + sync_offset*1000 ))));
+		row.insertCell(1).appendChild(document.createTextNode(reltime[0] + reltime[1] +":"+ reltime[2] +":"+ reltime[3]));
+		row.insertCell(2).appendChild(document.createTextNode(obj["event"]));
 	});
 }
 
+function updateCountdown(){
+	const cd_time = getRelTime(new Date(), new Date(liftoff.getTime() + sync_offset*1000));
+	cd_plusmin.textContent = cd_time[0];
+	cd_hrs.textContent = cd_time[1];
+	cd_min.textContent = cd_time[2];
+	cd_sec.textContent = cd_time[3];
+}
+
 function trigger_sync(){
-	const sync_hour=parseInt(sync_ref_hour.value);
-	const sync_min=parseInt(sync_ref_min.value);
-	const sync_sec=parseInt(sync_ref_sec.value);
+	const sync_hour=isNaN(parseInt(sync_ref_hour.value)) ? 0 : parseInt(sync_ref_hour.value);
+	const sync_min=isNaN(parseInt(sync_ref_min.value)) ? 0 : parseInt(sync_ref_min.value);
+	const sync_sec=isNaN(parseInt(sync_ref_sec.value)) ? 0 : parseInt(sync_ref_sec.value);
 	const sync_plusminus=parseInt(sync_ref_plusminus.selectedOptions[0].value);
-	const sync_ref_offset=sync_plusminus*(sync_hour*3600+sync_min*60+sync_sec)*1000;
-	sync_ref=new Date(liftoff.getTime()+sync_ref_offset);
+	sync_ref=new Date(liftoff.getTime()+sync_plusminus*(sync_hour*3600+sync_min*60+sync_sec)*1000);
 	const now = new Date();
 	sync_offset = Math.round((now.getTime()-sync_ref.getTime())/1000);
 	last_sync_time.value=now;
 	console.log(`Sync Offset: ${sync_offset} sec`);
 	populate_timeline();
+	clearInterval(countdown);
+	countdown = setInterval(updateCountdown, 1000);
 }
 
 function sleep(ms) {
@@ -95,15 +136,12 @@ function sleep(ms) {
 
 function crude_notify_scheduler()
 {
- 	if (!("Notification" in window)) {
-		alert("This browser does not support desktop notification");
-	}
+ 	if (!("Notification" in window)){ alert("This browser does not support desktop notifications"); return;}
 
 	if ( Notification.permission === "denied"){ return; }
 	else if ( Notification.permission !== "granted" ){ Notification.requestPermission(); }
 
-	if (Notification.permission !== "granted" && Notification.permission !== "default" ) return;
-
+	if ( Notification.permission !== "granted" && Notification.permission !== "default" ) return;
 
 	var last_sync = sync_ref;
 	var next_evt = 0;
@@ -134,7 +172,7 @@ const dtf_options = {
   hour12: false,
 };
 const dtf = new Intl.DateTimeFormat('default', dtf_options);
-
+var countdown = setInterval(updateCountdown, 1000);
 
 const timeline = [
 {"time":"-17999","event":"The Dragon Capsule aligns its inertial measurement units and is configured for launch"},
